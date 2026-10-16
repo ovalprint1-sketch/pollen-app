@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pollen Art Lab - AI image generator</title>
+<style>
+  :root{
+    --bg1:#0b0f1a; --bg2:#141a2e; --line:#2a3350;
+    --txt:#eef1f8; --mut:#9aa4c0; --acc:#ffcc00; --acc2:#7c5cff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:var(--txt);
+    background:radial-gradient(1200px 800px at 15% -10%, #26204a 0%, transparent 55%),
+               radial-gradient(1000px 700px at 100% 0%, #10384a 0%, transparent 50%),
+               linear-gradient(160deg,var(--bg1),var(--bg2));
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 22px 26px}
+  header{display:flex;align-items:center;gap:13px}
+  .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--acc),#ff9f1c);display:grid;place-items:center;font-size:22px;box-shadow:0 8px 24px rgba(255,204,0,.28)}
+  h1{font-size:22px;margin:0}
+  .sub{color:var(--mut);font-size:13px;margin:3px 0 16px 53px}
+  .grid{display:grid;grid-template-columns:390px 1fr;gap:20px;align-items:start}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .panel,.right{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:18px}
+  .panel{padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--mut);margin:0 0 7px}
+  textarea{width:100%;min-height:78px;resize:vertical;background:#0e1428;color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:14.5px;font-family:inherit;outline:none}
+  textarea:focus{border-color:var(--acc2);box-shadow:0 0 0 3px rgba(124,92,255,.18)}
+  .field{margin-top:15px}
+  .chips,.ratios{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{cursor:pointer;user-select:none;font-size:12.5px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:#0e1428;color:var(--mut)}
+  .chip.on{background:linear-gradient(135deg,var(--acc2),#4b34c9);border-color:transparent;color:#fff}
+  .ratio{cursor:pointer;font-size:12.5px;padding:7px 13px;border-radius:10px;border:1px solid var(--line);background:#0e1428;color:var(--mut)}
+  .ratio.on{background:var(--acc);border-color:transparent;color:#141414;font-weight:700}
+  .go{margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  button{cursor:pointer;font-family:inherit}
+  button.gen{border:0;border-radius:12px;padding:12px 24px;font-size:14.5px;font-weight:700;color:#141414;background:linear-gradient(135deg,var(--acc),#ff9f1c);box-shadow:0 10px 26px rgba(255,166,0,.3)}
+  button.gen:disabled{opacity:.55;cursor:not-allowed}
+  button.ghost{background:#0e1428;color:var(--txt);border:1px solid var(--line);border-radius:11px;padding:10px 16px;font-size:13px;font-weight:600}
+  button.ghost:hover{border-color:var(--acc2)}
+  .tag{font-size:12px;color:var(--mut)}
+  .authbar{margin-top:15px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:15px}
+  input.key{flex:1 1 150px;min-width:130px;background:#0e1428;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;outline:none}
+  .right{padding:12px}
+  .stage{border:1px solid var(--line);border-radius:14px;background:#0b1020;overflow:hidden;min-height:300px;display:grid;place-items:center;position:relative}
+  .stage img{display:block;width:100%;height:auto}
+  .ph{color:var(--mut);font-size:14px;text-align:center;padding:40px 20px}
+  .ph .big{font-size:32px;display:block;margin-bottom:8px}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid #2a3350;border-top-color:var(--acc);animation:s 1s linear infinite;margin:0 auto 12px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;padding:0 4px}
+  a.dl{font-size:13px;font-weight:600;color:var(--acc);text-decoration:none;border:1px solid var(--line);padding:8px 15px;border-radius:10px}
+  a.dl:hover{border-color:var(--acc)}
+  .badge{position:absolute;top:10px;left:10px;font-size:10.5px;background:rgba(0,0,0,.55);color:#cfd6ee;padding:4px 9px;border-radius:8px}
+  footer{margin-top:20px;display:flex;justify-content:center;opacity:.9}
+  footer img{height:30px}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🎨</div>
+    <h1>Pollen Art Lab</h1>
+  </header>
+  <div class="sub">Describe it. Pollinations paints it. Sign in and spend your own Pollen.</div>
+
+  <div class="grid">
+    <div class="panel">
+      <label for="prompt">Your idea</label>
+      <textarea id="prompt">a cozy lighthouse on a stormy night, glowing windows, cinematic</textarea>
+
+      <div class="field">
+        <label>Style</label>
+        <div class="chips" id="styles"></div>
+      </div>
+      <div class="field">
+        <label>Aspect ratio</label>
+        <div class="ratios" id="ratios"></div>
+      </div>
+
+      <div class="go">
+        <button class="gen" id="gen" disabled>✨ Generate art</button>
+      </div>
+
+      <div class="authbar" id="authbar">
+        <button class="ghost" id="signin">🔑 Sign in with Pollinations</button>
+        <input class="key" id="keyin" type="password" placeholder="…or paste key (sk_…)">
+        <button class="ghost" id="savekey">Use</button>
+      </div>
+      <div class="authbar hidden" id="userbar">
+        <span class="tag" id="who">Signed in — your Pollen is used per generation.</span>
+        <button class="ghost" id="signout">Sign out</button>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="stage" id="stage">
+        <span class="badge">sample</span>
+        <img id="sample" src="sample.jpg" alt="Sample artwork generated with Pollinations">
+      </div>
+      <div class="meta">
+        <span class="tag" id="hint">Sign in to start</span>
+        <span class="tag" id="meta"></span>
+        <a class="dl hidden" id="dl" href="#" download="pollen-art.jpg">⬇ Download</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <a href="https://pollinations.ai/?ref=badge" target="_blank" rel="noopener">
+      <img src="https://raw.githubusercontent.com/pollinations/pollinations/main/packages/ui/src/brand/badge-made-with.svg" alt="Made with pollinations.ai">
+    </a>
+  </footer>
+</div>
+
+<script>
+  const CLIENT_ID = "";                 // optional: your pk_ App Key
+  const STORE   = "pollen_art_key";
+  const STYLES = [["", "None"], ["digital painting", "Painting"], ["neon cyberpunk", "Neon"],
+                  ["soft watercolor", "Watercolor"], ["pixel art", "Pixel"], ["oil painting", "Oil"],
+                  ["minimalist flat vector", "Minimal"], ["3d render, octane", "3D"]];
+  const RATIOS = [["1:1",1024,1024], ["16:9",1280,720], ["9:16",720,1280], ["4:3",1024,768]];
+  let style = "", ratio = 1, busy = false;
+  const $ = id => document.getElementById(id);
+
+  const getKey = () => sessionStorage.getItem(STORE) || "";
+  const setKey = k => sessionStorage.setItem(STORE, k);
+
+  const hp = new URLSearchParams(location.hash.slice(1));
+  if (hp.get("api_key")) { setKey(hp.get("api_key")); history.replaceState(null, "", location.pathname + location.search); }
+
+  STYLES.forEach(([val, name], i) => {
+    const el = document.createElement("span");
+    el.className = "chip" + (i === 0 ? " on" : "");
+    el.textContent = name;
+    el.onclick = () => { style = val; document.querySelectorAll(".chip").forEach(c => c.classList.remove("on")); el.classList.add("on"); };
+    $("styles").appendChild(el);
+  });
+  RATIOS.forEach(([name], i) => {
+    const el = document.createElement("span");
+    el.className = "ratio" + (i === 1 ? " on" : "");
+    el.textContent = name;
+    el.onclick = () => { ratio = i; document.querySelectorAll(".ratio").forEach(c => c.classList.remove("on")); el.classList.add("on"); };
+    $("ratios").appendChild(el);
+  });
+
+  function refreshAuth() {
+    const k = getKey();
+    $("authbar").classList.toggle("hidden", !!k);
+    $("userbar").classList.toggle("hidden", !k);
+    $("gen").disabled = !k;
+    $("hint").textContent = k ? "Ready — powered by Pollinations" : "Sign in to start";
+  }
+  $("signin").onclick = () => {
+    const u = new URL("https://enter.pollinations.ai/authorize");
+    u.searchParams.set("redirect_uri", location.origin + location.pathname.replace(/index\.html$/, ""));
+    u.searchParams.set("scope", "usage");
+    u.searchParams.set("state", Math.random().toString(36).slice(2));
+    if (CLIENT_ID) u.searchParams.set("client_id", CLIENT_ID);
+    location.href = u.toString();
+  };
+  $("savekey").onclick = () => { const v = $("keyin").value.trim(); if (v) { setKey(v); refreshAuth(); } };
+  $("keyin").addEventListener("keydown", e => { if (e.key === "Enter") $("savekey").click(); });
+  $("signout").onclick = () => { sessionStorage.removeItem(STORE); refreshAuth(); };
+
+  function buildUrl(prompt) {
+    const [, w, h] = RATIOS[ratio];
+    const full = style ? prompt + ", " + style : prompt;
+    const seed = Math.floor(Math.random() * 1e6);
+    return "https://gen.pollinations.ai/image/" + encodeURIComponent(full) +
+           "?width=" + w + "&height=" + h + "&seed=" + seed + "&nologo=true";
+  }
+  async function generate() {
+    const key = getKey();
+    if (!key || busy) return;
+    const prompt = $("prompt").value.trim();
+    if (!prompt) return;
+    busy = true; $("gen").disabled = true;
+    $("hint").textContent = "Painting…";
+    $("meta").textContent = ""; $("dl").classList.add("hidden");
+    $("stage").innerHTML = '<div class="ph"><div class="spin"></div>Generating your art…</div>';
+
+    const url = buildUrl(prompt);
+    const t0 = performance.now();
+    try {
+      const res = await fetch(url, { headers: { Authorization: "Bearer " + key } });
+      if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem(STORE); refreshAuth();
+        $("stage").innerHTML = '<div class="ph"><span class="big">🔒</span>Key rejected. Sign in again.</div>';
+        busy = false; return;
+      }
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const blob = await res.blob();
+      const obj = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        $("stage").innerHTML = ""; img.alt = prompt; $("stage").appendChild(img);
+        const s = ((performance.now() - t0) / 1000).toFixed(1);
+        $("meta").textContent = RATIOS[ratio][1] + "×" + RATIOS[ratio][2] + " · " + s + "s";
+        $("dl").href = obj; $("dl").classList.remove("hidden");
+        $("hint").textContent = "Ready — powered by Pollinations";
+        busy = false; $("gen").disabled = false;
+      };
+      img.src = obj;
+    } catch (e) {
+      $("stage").innerHTML = '<div class="ph"><span class="big">😕</span>Could not generate. Try again.</div>';
+      $("hint").textContent = "Ready — powered by Pollinations";
+      busy = false; $("gen").disabled = false;
+    }
+  }
+  $("gen").onclick = generate;
+  $("prompt").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) generate(); });
+
+  refreshAuth();
+</script>
+</body>
+</html>
